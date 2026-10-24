@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../src/helpers.php';
 require_login();
 
-$id = $_GET['id'] ?? $_POST['id'] ?? '';
+$id = request_string($_GET, 'id', 20) ?: request_string($_POST, 'id', 20);
 
 $stmt = db()->prepare('SELECT * FROM topics WHERE id = ?');
 $stmt->execute([$id]);

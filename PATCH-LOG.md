@@ -300,3 +300,44 @@ details do appear in the server log.
 
 **Normal use still works.** A new user (`newuser8`) registers (HTTP 302), and
 searching `PDO` returns the matching topic.
+
+---
+
+## Patch #9 — Disable public diagnostics, validate input shape (A02 Security Misconfiguration)
+
+**Lab 4 finding:** #9 — public debug output and malformed input handling.
+
+**Root cause.** Two problems combined:
+1. `src/config.php` set `display_errors` and `display_startup_errors` to `1`,
+   so every PHP warning, fatal error and uncaught exception was printed to the
+   visitor, along with server file paths and line numbers.
+2. Pages assumed query parameters were strings. PHP turns `q[]=x` into an
+   array, which caused an "Array to string conversion" warning and an uncaught
+   `TypeError`. The page still returned HTTP 200.
+
+**Exploit confirmed on current code.** `search.php?q[]=x` returned HTTP 200
+with a `Warning:` and a `Fatal error: Uncaught TypeError … in
+/home/claude/devtalk-labs/public/search.php`. The same thing happened with
+`topic.php?id[]=1`, `profile.php?id[]=1` and `fetch_image.php?url[]=x`.
+
+**Fix.**
+- New `src/errors.php` (loaded by `config.php`) sets `display_errors=0` and
+  `display_startup_errors=0`, enables `log_errors`, and writes to
+  `logs/php-error.log`. That folder is outside the web root and git-ignored.
+- A global `set_exception_handler()` boundary logs any uncaught exception and
+  returns a generic HTTP 500 page.
+- `request_string()` reads a parameter and calls `bad_request()` (HTTP 400,
+  "Invalid request parameter.") if the value is an array or too long. It's
+  used for `q`, `id`, `url` and the login/registration fields.
+
+**Re-test (exploit fails).** `search.php?q[]=x` → HTTP 400 "Invalid request
+parameter." with no PHP output. `topic.php`, `profile.php` and
+`fetch_image.php` with array parameters → 400, with zero diagnostic lines and
+zero server-path leaks. An unexpected `TypeError` elsewhere (`title[]=x` on
+create topic) → generic 500, logged privately.
+`docs/screenshots/09a-array-param-400.png`,
+`docs/screenshots/09b-malformed-input-400.png`.
+
+**Normal use still works.** Ordinary searches (`CSS`), topic and profile pages,
+the homepage and bundled image previews all return 200 with the expected
+content.

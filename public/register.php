@@ -4,9 +4,9 @@ require_once __DIR__ . '/../src/helpers.php';
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    $username = trim($_POST['username'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $username = trim(request_string($_POST, 'username', 50));
+    $email    = trim(request_string($_POST, 'email', 254));
+    $password = request_string($_POST, 'password', 1024);
 
     if ($username === '' || $email === '' || $password === '') {
         $error = 'All fields are required.';

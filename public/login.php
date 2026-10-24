@@ -4,8 +4,8 @@ require_once __DIR__ . '/../src/helpers.php';
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $username = request_string($_POST, 'username', 50);
+    $password = request_string($_POST, 'password', 1024);
 
     try {
         $stmt = db()->prepare('SELECT * FROM users WHERE username = ?');

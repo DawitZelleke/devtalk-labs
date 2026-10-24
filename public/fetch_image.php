@@ -20,7 +20,7 @@ const APPROVED_IMAGE_HOSTS = [
     'raw.githubusercontent.com',
 ];
 
-$url = $_GET['url'] ?? '';
+$url = request_string($_GET, 'url', 2048);
 if ($url === '') {
     http_response_code(400);
     echo 'No url provided.';

@@ -224,3 +224,6 @@ public/uploads/*
 *ANSWER*KEY*
 *VULNERAB*
 *vulnerab*solution*
+# Server-side error log (Lab 5 Patch #9)
+logs/*
+!logs/.gitkeep

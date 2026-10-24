@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../src/helpers.php';
 
-$id = $_GET['id'] ?? '';
+$id = request_string($_GET, 'id', 20);
 
 $stmt = db()->prepare(
     'SELECT t.*, u.username
