@@ -29,6 +29,22 @@ function require_login(): void
     }
 }
 
+/**
+ * Verify a submitted password against a stored user record.
+ * Hashed records are checked with password_verify(); any legacy plaintext
+ * record (pre-migration seed) is compared in constant time. Password storage
+ * itself is migrated to hashes in Patch #6.
+ */
+function verify_user_password(string $password, array $user): bool
+{
+    $stored = (string) ($user['password'] ?? '');
+    $info = password_get_info($stored);
+    if (!empty($info['algo'])) {
+        return password_verify($password, $stored);
+    }
+    return hash_equals($stored, $password);
+}
+
 function render_header(string $title = APP_NAME): void
 {
     $user = current_user();
