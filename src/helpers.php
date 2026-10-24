@@ -45,6 +45,102 @@ function verify_user_password(string $password, array $user): bool
     return hash_equals($stored, $password);
 }
 
+/**
+ * Is a URL safe to place in an href/src? Allows http/https/mailto and
+ * scheme-less relative URLs; rejects javascript:, data:, vbscript:, etc.
+ */
+function url_is_safe(string $url): bool
+{
+    $url = trim($url);
+    if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url)) {
+        return false;
+    }
+    if (preg_match('#^([a-z][a-z0-9+.\-]*):#i', $url, $m)) {
+        return in_array(strtolower($m[1]), ['http', 'https', 'mailto'], true);
+    }
+    return true; // relative / anchor
+}
+
+/**
+ * Sanitize user-supplied HTML against a strict tag/attribute allowlist.
+ * Keeps basic formatting (paragraphs, bold, lists, code, links, images) but
+ * drops every unknown tag and every attribute not on the allowlist, including
+ * all on* event handlers and unsafe URL schemes. Defeats stored XSS while
+ * preserving the forum's "HTML allowed" posting feature.
+ */
+function sanitize_html(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $allowed = [
+        'p' => [], 'br' => [], 'strong' => [], 'b' => [], 'em' => [], 'i' => [],
+        'u' => [], 'code' => [], 'pre' => [], 'blockquote' => [], 'span' => [],
+        'ul' => [], 'ol' => [], 'li' => [],
+        'h1' => [], 'h2' => [], 'h3' => [], 'h4' => [], 'h5' => [], 'h6' => [],
+        'a' => ['href', 'title'],
+        'img' => ['src', 'alt', 'title'],
+    ];
+
+    $doc = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $doc->loadHTML(
+        '<?xml encoding="UTF-8"><div id="__root">' . $html . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+
+    $root = null;
+    foreach ($doc->childNodes as $n) {
+        if ($n instanceof DOMElement) {
+            $root = $n;
+            break;
+        }
+    }
+    if ($root === null) {
+        return htmlspecialchars(strip_tags($html));
+    }
+
+    $clean = function (DOMNode $node) use (&$clean, $allowed) {
+        foreach (iterator_to_array($node->childNodes) as $child) {
+            if ($child instanceof DOMText) {
+                continue;
+            }
+            if (!($child instanceof DOMElement)) {
+                $node->removeChild($child); // comments, PIs, etc.
+                continue;
+            }
+            $tag = strtolower($child->tagName);
+            if (!array_key_exists($tag, $allowed)) {
+                $node->removeChild($child); // drop unknown element + subtree
+                continue;
+            }
+            foreach (iterator_to_array($child->attributes) as $attr) {
+                $name = strtolower($attr->name);
+                if (!in_array($name, $allowed[$tag], true)) {
+                    $child->removeAttribute($attr->name);
+                    continue;
+                }
+                if (($tag === 'a' && $name === 'href') || ($tag === 'img' && $name === 'src')) {
+                    if (!url_is_safe($attr->value)) {
+                        $child->removeAttribute($attr->name);
+                    }
+                }
+            }
+            $clean($child);
+        }
+    };
+    $clean($root);
+
+    $out = '';
+    foreach (iterator_to_array($root->childNodes) as $c) {
+        $out .= $doc->saveHTML($c);
+    }
+    return $out;
+}
+
 function render_header(string $title = APP_NAME): void
 {
     $user = current_user();
