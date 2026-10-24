@@ -194,3 +194,37 @@ traversal also returns `400`.
 **Normal use still works.** `assets/img/welcome.png` is served (HTTP 200,
 `image/png`); an approved `https://upload.wikimedia.org/…` image returns a 302
 redirect to the browser.
+
+---
+
+## Patch #6 — Hash passwords with password_hash() (A04 Cryptographic Failures)
+
+**Lab 4 finding:** #6 — plaintext password storage.
+
+**Root cause.** `database/build_db.php` inserted the seed passwords unchanged
+and `register.php` inserted `$password` unchanged, so the `users.password`
+column held every password in clear text. Any database read (SQLi, a leaked
+backup, local access) exposed real credentials.
+
+**Exploit confirmed on current code.** After seeding and registering
+`labtester / LabTestPass123!`, all 5 passwords were present verbatim in
+`users.password` and in the raw `forum.sqlite` file.
+
+**Fix.**
+- `build_db.php` and `register.php` store `password_hash($password,
+  PASSWORD_DEFAULT)` (salted, adaptive bcrypt).
+- `verify_user_password()` now accepts **only** hashes via `password_verify()`.
+  The temporary plaintext path from Patch #1 is removed, and hashes are
+  upgraded with `password_needs_rehash()` when PHP's default changes.
+- New `database/migrate_passwords.php` hashes any plaintext rows in an existing
+  database once, then runs `VACUUM` so old values are not left in free pages.
+- Removed the schema comment that described plaintext storage.
+
+**Re-test (exploit fails).** Rebuilt DB + new registration: 0 plaintext rows,
+0 plaintext matches in the raw database file; values are `$2y$10$…` hashes.
+A legacy plaintext row can no longer log in until the migration hashes it.
+`docs/screenshots/06-passwords-hashed.png`.
+
+**Normal use still works.** `admin`, `alice`, `bob`, `carol` and the newly
+registered `labtester` all log in; a wrong password is rejected. The sample
+credentials stay limited to this local lab.

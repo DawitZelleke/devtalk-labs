@@ -8,8 +8,7 @@ CREATE TABLE users (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     username   TEXT NOT NULL UNIQUE,
     email      TEXT NOT NULL,
-    -- NOTE (instructor): passwords are stored in plaintext on purpose so that a
-    -- successful SQL injection / data dump has a tangible payoff in Lab 4.
+    -- Stores a password_hash() value, never the plaintext password (Lab 5 Patch #6).
     password   TEXT NOT NULL,
     bio        TEXT DEFAULT '',
     is_admin   INTEGER NOT NULL DEFAULT 0,

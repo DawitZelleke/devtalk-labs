@@ -42,7 +42,8 @@ $insUser = $pdo->prepare(
 // stagger created_at a little
 $offsets = ['-30 days', '-25 days', '-20 days', '-15 days'];
 foreach ($users as $i => $u) {
-    $insUser->execute([$u[0], $u[1], $u[2], $u[3], $u[4], $offsets[$i]]);
+    // Store only a salted, adaptive hash (bcrypt/argon via PASSWORD_DEFAULT).
+    $insUser->execute([$u[0], $u[1], password_hash($u[2], PASSWORD_DEFAULT), $u[3], $u[4], $offsets[$i]]);
 }
 
 // --- Seed topics ----------------------------------------------------------

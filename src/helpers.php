@@ -99,19 +99,22 @@ function require_post(): void
 }
 
 /**
- * Verify a submitted password against a stored user record.
- * Hashed records are checked with password_verify(); any legacy plaintext
- * record (pre-migration seed) is compared in constant time. Password storage
- * itself is migrated to hashes in Patch #6.
+ * Verify a submitted password against a stored password_hash() value.
+ * Plaintext records are never accepted (run database/migrate_passwords.php
+ * once on an old database). Hashes are transparently upgraded when PHP's
+ * default algorithm or cost changes.
  */
 function verify_user_password(string $password, array $user): bool
 {
     $stored = (string) ($user['password'] ?? '');
-    $info = password_get_info($stored);
-    if (!empty($info['algo'])) {
-        return password_verify($password, $stored);
+    if (empty(password_get_info($stored)['algo']) || !password_verify($password, $stored)) {
+        return false;
     }
-    return hash_equals($stored, $password);
+    if (password_needs_rehash($stored, PASSWORD_DEFAULT)) {
+        $up = db()->prepare('UPDATE users SET password = ? WHERE id = ?');
+        $up->execute([password_hash($password, PASSWORD_DEFAULT), (int) $user['id']]);
+    }
+    return true;
 }
 
 /**

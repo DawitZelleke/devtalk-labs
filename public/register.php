@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = db()->prepare(
                 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)'
             );
-            $stmt->execute([$username, $email, $password]);
+            $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
             $_SESSION['user_id'] = (int) db()->lastInsertId();
             header('Location: index.php');
             exit;
