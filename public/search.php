@@ -16,7 +16,9 @@ if ($q !== '') {
         $stmt->execute([$like, $like]);
         $results = $stmt->fetchAll();
     } catch (PDOException $e) {
-        $sqlError = $e->getMessage();
+        log_exception($e, 'search');
+        http_response_code(500);
+        $sqlError = 'Search is temporarily unavailable. Please try again later.';
     }
 }
 
@@ -36,7 +38,7 @@ render_header('Search');
 <?php endif; ?>
 
 <?php if ($sqlError): ?>
-    <div class="alert alert-danger"><strong>Database error:</strong> <?= htmlspecialchars($sqlError) ?></div>
+    <div class="alert alert-danger"><?= htmlspecialchars($sqlError) ?></div>
 <?php endif; ?>
 
 <?php if ($q !== '' && !$results && !$sqlError): ?>

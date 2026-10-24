@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $error = 'Invalid username or password.';
     } catch (PDOException $e) {
-        $error = 'Login query failed: ' . $e->getMessage();
+        log_exception($e, 'login');
+        $error = 'Login is temporarily unavailable. Please try again later.';
     }
 }
 
@@ -29,7 +30,7 @@ render_header('Log in');
     <div class="col-md-5">
         <h1 class="h4 mb-3">Log in</h1>
         <?php if ($error): ?>
-            <div class="alert alert-danger"><?= $error ?></div>
+            <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
         <form method="post" class="card card-body shadow-sm">
             <?= csrf_field() ?>

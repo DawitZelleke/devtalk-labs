@@ -262,3 +262,41 @@ attacker-chosen ID is replaced with a fresh one; in the browser
 
 **Normal use still works.** In a real browser Alice logs in, stays logged in
 across pages, and logs out normally. Registration still logs the new user in.
+
+---
+
+## Patch #8 — Generic error messages, details logged server-side (A10 Mishandling of Exceptional Conditions)
+
+**Lab 4 finding:** #8 — database exception information disclosure.
+
+**Root cause.** The `catch (PDOException $e)` blocks in `search.php`,
+`login.php` and `register.php` copied `$e->getMessage()` (and originally the
+SQL text) into the page. `login.php` and `register.php` printed it without
+encoding. Any database failure exposed SQLSTATE codes, driver messages and
+table/column names, even with `display_errors` off.
+
+**Exploit confirmed on current code.** Patch #1 already stopped the Lab 4
+`' UNION SELECT 1 --` payload from causing a SQL error, so I triggered two real
+`PDOException`s instead. Registering the existing username `alice` showed
+`SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed:
+users.username`. A search while the `topics` table was temporarily renamed
+showed `SQLSTATE[HY000]: General error: 1 no such table: topics`.
+
+**Fix.**
+- New `log_exception()` helper writes the exception class, message, file and
+  line to the server-side PHP error log.
+- Each catch block now logs and shows a fixed, generic message ("Search is
+  temporarily unavailable…" with HTTP 500, "Login is temporarily
+  unavailable…", "Could not create the account…").
+- Error messages in `login.php`/`register.php` are now printed through
+  `htmlspecialchars()`.
+
+**Re-test (exploit fails).** Duplicate registration shows only the generic
+message; the forced search failure returns 500 with the generic message; no
+`SQLSTATE`, constraint, table or column names appear in any response. The
+details do appear in the server log.
+`docs/screenshots/08a-register-error-generic.png`,
+`docs/screenshots/08b-db-errors-generic.png`.
+
+**Normal use still works.** A new user (`newuser8`) registers (HTTP 302), and
+searching `PDO` returns the matching topic.

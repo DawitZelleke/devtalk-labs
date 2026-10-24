@@ -49,6 +49,16 @@ function login_user(int $userId): void
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+/**
+ * Record exception details server-side only. The user sees a generic message;
+ * the SQLSTATE, driver message and stack trace go to the PHP error log.
+ */
+function log_exception(Throwable $e, string $context): void
+{
+    error_log(sprintf('[DevTalk] %s: %s: %s in %s:%d',
+        $context, get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()));
+}
+
 function current_user_id(): ?int
 {
     return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
