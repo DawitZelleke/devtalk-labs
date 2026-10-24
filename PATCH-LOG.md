@@ -159,3 +159,38 @@ deleted the topic.
 
 **Normal use still works.** With valid tokens: login, create topic, add
 comment, delete own topic and logout all succeed (HTTP 302).
+
+---
+
+## Patch #5 — Remove arbitrary server-side URL fetching (A01 Broken Access Control — SSRF)
+
+**Lab 4 finding:** #5 — server-side request forgery and local file disclosure.
+
+**Root cause.** `fetch_image.php` passed the user-supplied `url` straight to
+`file_get_contents()` with redirects enabled. PHP stream wrappers meant the
+server would read `file://` paths and request any host the user named,
+including loopback/internal services, and return the bytes.
+
+**Exploit confirmed on current code.** With the original file restored
+temporarily: a `file://` URL to a local sentinel fixture returned
+`LAB5_LOCAL_FILE_SENTINEL` (HTTP 200), and `http://127.0.0.1:8001/private`
+caused one request to a harmless local test listener and returned its internal
+marker (HTTP 200).
+
+**Fix.** The server no longer fetches user-supplied URLs at all:
+- A scheme-less relative path is served only if `realpath()` resolves it to an
+  image file inside `public/assets` or `public/uploads` (blocks `../`
+  traversal and non-image files).
+- An `https` URL whose host is on a fixed allowlist of image hosts is returned
+  to the browser as a `302` redirect, so the browser fetches it directly.
+- Anything else (`file://`, `http://`, loopback, other hosts) → `400`.
+
+**Re-test (exploit fails).** `file://` → `400`, no sentinel;
+loopback URL → `400`, no marker, **0** requests reached the listener.
+`docs/screenshots/05a-ssrf-file-uri-blocked.png`,
+`docs/screenshots/05b-ssrf-loopback-blocked.png`. A `../src/config.php`
+traversal also returns `400`.
+
+**Normal use still works.** `assets/img/welcome.png` is served (HTTP 200,
+`image/png`); an approved `https://upload.wikimedia.org/…` image returns a 302
+redirect to the browser.
