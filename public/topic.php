@@ -53,9 +53,12 @@ render_header($topic['title']);
             <div class="mt-3 d-flex gap-2">
                 <a class="btn btn-sm btn-outline-secondary"
                     href="edit_topic.php?id=<?= (int) $topic['id'] ?>">Edit</a>
-                <a class="btn btn-sm btn-outline-danger"
-                    href="delete_topic.php?id=<?= (int) $topic['id'] ?>"
-                    onclick="return confirm('Delete this topic?')">Delete</a>
+                <form method="post" action="delete_topic.php" class="d-inline m-0"
+                    onsubmit="return confirm('Delete this topic?')">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="id" value="<?= (int) $topic['id'] ?>">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
             </div>
         <?php endif; ?>
     </div>
@@ -74,8 +77,12 @@ render_header($topic['title']);
                         · <?= fmt_date($c['created_at']) ?>
                     </span>
                     <?php if ($user): ?>
-                        <a class="small text-danger text-decoration-none"
-                            href="delete_comment.php?id=<?= (int) $c['id'] ?>&topic_id=<?= (int) $topic['id'] ?>">delete</a>
+                        <form method="post" action="delete_comment.php" class="d-inline m-0">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                            <input type="hidden" name="topic_id" value="<?= (int) $topic['id'] ?>">
+                            <button class="btn btn-link btn-sm p-0 align-baseline small text-danger text-decoration-none">delete</button>
+                        </form>
                     <?php endif; ?>
                 </div>
                 <div class="mt-1"><?= sanitize_html($c['body']) ?></div>
@@ -86,6 +93,7 @@ render_header($topic['title']);
 
 <?php if ($user): ?>
     <form method="post" action="add_comment.php" class="card card-body shadow-sm">
+        <?= csrf_field() ?>
         <input type="hidden" name="topic_id" value="<?= (int) $topic['id'] ?>">
         <label class="form-label">Add a comment</label>
         <textarea name="body" class="form-control mb-2" rows="3" required></textarea>

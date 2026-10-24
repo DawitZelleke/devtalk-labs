@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/../src/helpers.php';
 require_login();
+require_post();
+verify_csrf();
 
-$id      = $_GET['id'] ?? '';
-$topicId = $_GET['topic_id'] ?? '';
+$id      = $_POST['id'] ?? '';
+$topicId = $_POST['topic_id'] ?? '';
 
 $stmt = db()->prepare('SELECT * FROM comments WHERE id = ?');
 $stmt->execute([$id]);

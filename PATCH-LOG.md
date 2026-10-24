@@ -122,3 +122,40 @@ unchanged, only Alice's own bio updated; `delete_comment?id=2` and
 
 **Normal use still works.** Alice edits her own topic (HTTP 302, title updated);
 the admin moderates/deletes another user's topic (HTTP 302, removed).
+
+---
+
+## Patch #4 — CSRF tokens and POST-only state changes (A01 Broken Access Control — CSRF)
+
+**Lab 4 finding:** #4 — CSRF and unsafe GET actions.
+
+**Root cause.** No POST handler carried an anti-forgery token, so any page
+could submit a state change using the victim's cookie. Worse,
+`delete_topic.php`, `delete_comment.php` and `logout.php` mutated state on a
+plain `GET`, so a single `<img>`/link could trigger them.
+
+**Exploit confirmed on current code.** A tokenless POST to `create_topic.php`
+with a valid session was accepted (302), and `GET delete_topic.php?id=…`
+deleted the topic.
+
+**Fix.**
+- New helpers `csrf_token()`, `csrf_field()`, `verify_csrf()` issue a 32-byte
+  random per-session token and compare it with `hash_equals()`.
+- Every POST form embeds `csrf_field()` (login, register, create/edit topic,
+  add comment, profile bio, delete topic, delete comment, logout), and every
+  POST handler calls `verify_csrf()` → `403` on a missing/invalid token.
+- `delete_topic.php`, `delete_comment.php` and `logout.php` now call
+  `require_post()` (→ `405` on GET) and read their ids from `$_POST`. The
+  topic/comment "Delete" and nav "Log out" controls are now token-bearing POST
+  forms.
+
+**Re-test (exploit fails).**
+- Tokenless POST to `create_topic.php` → `403`; topic count unchanged.
+- Tampered-token POST → "Forbidden" page, no topic created.
+  `docs/screenshots/04a-csrf-token-rejected.png`.
+- `GET delete_topic.php` / `delete_comment.php` / `logout.php` → `405`; records
+  preserved and the session stays logged in.
+  `docs/screenshots/04b-delete-get-405.png`.
+
+**Normal use still works.** With valid tokens: login, create topic, add
+comment, delete own topic and logout all succeed (HTTP 302).

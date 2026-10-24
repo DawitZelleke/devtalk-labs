@@ -3,6 +3,7 @@ require_once __DIR__ . '/../src/helpers.php';
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
 
@@ -31,6 +32,7 @@ render_header('Log in');
             <div class="alert alert-danger"><?= $error ?></div>
         <?php endif; ?>
         <form method="post" class="card card-body shadow-sm">
+            <?= csrf_field() ?>
             <div class="mb-3">
                 <label class="form-label">Username</label>
                 <input name="username" class="form-control" autofocus>

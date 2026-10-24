@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/helpers.php';
 $id = $_GET['id'] ?? ($_POST['user_id'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_logged_in()) {
+    verify_csrf();
     // Authorization: a user may only update their OWN bio. The target row is
     // the authenticated user's id, never a value submitted in the request.
     $bio    = $_POST['bio'] ?? '';
@@ -48,6 +49,7 @@ render_header($profile['username'] . "'s profile");
 
         <?php if ($me): ?>
             <form method="post" class="card card-body shadow-sm">
+                <?= csrf_field() ?>
                 <input type="hidden" name="user_id" value="<?= (int) $profile['id'] ?>">
                 <label class="form-label">Update bio</label>
                 <textarea name="bio" class="form-control mb-2" rows="3"><?= htmlspecialchars($profile['bio']) ?></textarea>

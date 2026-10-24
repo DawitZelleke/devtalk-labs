@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . '/../src/helpers.php';
 require_login();
+require_post();
+verify_csrf();
 
-$id = $_GET['id'] ?? '';
+$id = $_POST['id'] ?? '';
 
 $stmt = db()->prepare('SELECT * FROM topics WHERE id = ?');
 $stmt->execute([$id]);

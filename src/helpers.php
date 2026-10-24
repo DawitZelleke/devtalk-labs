@@ -51,6 +51,53 @@ function forbid(string $msg = 'You are not allowed to do that.'): void
     exit;
 }
 
+/* ---- CSRF protection ------------------------------------------------- */
+
+/** Return the per-session CSRF token, creating one on first use. */
+function csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/** Hidden form field carrying the CSRF token. Place in every POST form. */
+function csrf_field(): string
+{
+    return '<input type="hidden" name="csrf_token" value="'
+        . htmlspecialchars(csrf_token()) . '">';
+}
+
+/** Verify the CSRF token on a state-changing POST; 403 on mismatch. */
+function verify_csrf(): void
+{
+    $sent = $_POST['csrf_token'] ?? '';
+    if (!is_string($sent) || empty($_SESSION['csrf_token'])
+        || !hash_equals($_SESSION['csrf_token'], $sent)) {
+        http_response_code(403);
+        render_header('Forbidden');
+        echo '<div class="alert alert-danger">Invalid or missing security token. '
+            . 'Please reload the page and try again.</div>';
+        render_footer();
+        exit;
+    }
+}
+
+/** Require that the current request is a POST; 405 otherwise. Used for
+ *  state-changing actions that must not run on a GET. */
+function require_post(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        header('Allow: POST');
+        render_header('Method Not Allowed');
+        echo '<div class="alert alert-danger">This action requires a POST request.</div>';
+        render_footer();
+        exit;
+    }
+}
+
 /**
  * Verify a submitted password against a stored user record.
  * Hashed records are checked with password_verify(); any legacy plaintext
@@ -192,7 +239,10 @@ function render_header(string $title = APP_NAME): void
                         <a class="btn btn-sm btn-outline-light" href="profile.php?id=<?= $user['id'] ?>">
                             <?= htmlspecialchars($user['username']) ?>
                         </a>
-                        <a class="btn btn-sm btn-outline-light" href="logout.php">Log out</a>
+                        <form method="post" action="logout.php" class="d-inline m-0">
+                            <?= csrf_field() ?>
+                            <button class="btn btn-sm btn-outline-light">Log out</button>
+                        </form>
                     <?php else: ?>
                         <a class="btn btn-sm btn-outline-light" href="login.php">Log in</a>
                         <a class="btn btn-sm btn-primary" href="register.php">Register</a>
