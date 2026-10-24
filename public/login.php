@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $row = $stmt->fetch();
 
         if ($row && verify_user_password($password, $row)) {
-            $_SESSION['user_id'] = (int) $row['id'];
+            login_user((int) $row['id']);
             header('Location: index.php');
             exit;
         }

@@ -228,3 +228,37 @@ A legacy plaintext row can no longer log in until the migration hashes it.
 **Normal use still works.** `admin`, `alice`, `bob`, `carol` and the newly
 registered `labtester` all log in; a wrong password is rejected. The sample
 credentials stay limited to this local lab.
+
+---
+
+## Patch #7 — Regenerate session at login, harden session cookie (A07 Authentication Failures)
+
+**Lab 4 finding:** #7 — session fixation and unprotected session cookies.
+
+**Root cause.** `src/helpers.php` called a bare `session_start()`, so the
+`PHPSESSID` cookie had no `HttpOnly`/`SameSite` flags and PHP accepted any
+session ID the client offered. `login.php` and `register.php` then set
+`$_SESSION['user_id']` on that same ID. An ID that existed before login (or one
+an attacker planted) became an authenticated session.
+
+**Exploit confirmed on current code.** `GET login.php`, keep the cookie, log in
+as Alice: `PHPSESSID` was identical before and after login, and the pre-login
+ID was itself a logged-in session. The cookie lacked `HttpOnly`/`SameSite`, and
+an arbitrary attacker-chosen ID was accepted as-is.
+
+**Fix.**
+- `session_start()` now runs with `use_strict_mode` (unknown IDs are
+  replaced), `use_only_cookies`, `cookie_httponly`, `cookie_samesite=Lax`, and
+  `cookie_secure` when the request is HTTPS.
+- New `login_user()` helper calls `session_regenerate_id(true)` (deleting the
+  old session), sets `user_id`, and rotates the CSRF token. It's used by both
+  login and registration.
+
+**Re-test (exploit fails).** The session ID changes at login; the pre-login ID
+is no longer logged in; `Set-Cookie` carries `HttpOnly; SameSite=Lax`; an
+attacker-chosen ID is replaced with a fresh one; in the browser
+`document.cookie` cannot see `PHPSESSID`.
+`docs/screenshots/07-session-regenerated-httponly.png`.
+
+**Normal use still works.** In a real browser Alice logs in, stays logged in
+across pages, and logs out normally. Registration still logs the new user in.

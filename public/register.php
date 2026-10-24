@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)'
             );
             $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
-            $_SESSION['user_id'] = (int) db()->lastInsertId();
+            login_user((int) db()->lastInsertId());
             header('Location: index.php');
             exit;
         } catch (PDOException $e) {

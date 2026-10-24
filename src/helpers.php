@@ -2,7 +2,15 @@
 require_once __DIR__ . '/db.php';
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_start([
+        'use_strict_mode'  => 1,     // reject unknown, attacker-chosen session ids
+        'use_only_cookies' => 1,     // never accept a session id from the URL
+        'use_trans_sid'    => 0,
+        'cookie_httponly'  => 1,     // not readable from JavaScript
+        'cookie_samesite'  => 'Lax', // not sent on cross-site POSTs
+        'cookie_secure'    => $https ? 1 : 0, // HTTPS-only when served over TLS
+    ]);
 }
 
 function is_logged_in(): bool
@@ -27,6 +35,18 @@ function require_login(): void
         header('Location: login.php');
         exit;
     }
+}
+
+/**
+ * Start an authenticated session for $userId. Issues a brand-new session id
+ * (deleting the old one) and a fresh CSRF token, so an id or token known
+ * before login is useless afterwards.
+ */
+function login_user(int $userId): void
+{
+    session_regenerate_id(true);
+    $_SESSION['user_id']    = $userId;
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 function current_user_id(): ?int
