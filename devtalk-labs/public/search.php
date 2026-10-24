@@ -1,0 +1,63 @@
+<?php
+require_once __DIR__ . '/../src/helpers.php';
+
+$q = request_string($_GET, 'q', 200);
+
+$results = [];
+$sqlError = '';
+
+if ($q !== '') {
+    $like = '%' . $q . '%';
+    try {
+        $stmt = db()->prepare(
+            'SELECT id, title, body FROM topics
+             WHERE title LIKE ? OR body LIKE ? ORDER BY created_at DESC'
+        );
+        $stmt->execute([$like, $like]);
+        $results = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        log_exception($e, 'search');
+        http_response_code(500);
+        $sqlError = 'Search is temporarily unavailable. Please try again later.';
+    }
+}
+
+render_header('Search');
+?>
+<h1 class="h4 mb-3">Search</h1>
+
+<form method="get" class="mb-4">
+    <div class="input-group">
+        <input name="q" class="form-control" value="<?= htmlspecialchars($q) ?>" placeholder="Search topics…">
+        <button class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+<?php if ($q !== ''): ?>
+    <p class="text-body-secondary">Results for: <?= htmlspecialchars($q) ?></p>
+<?php endif; ?>
+
+<?php if ($sqlError): ?>
+    <div class="alert alert-danger"><?= htmlspecialchars($sqlError) ?></div>
+<?php endif; ?>
+
+<?php if ($q !== '' && !$results && !$sqlError): ?>
+    <p class="text-body-secondary">No matches found.</p>
+<?php endif; ?>
+
+<div class="vstack gap-3">
+    <?php foreach ($results as $r): ?>
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6 mb-1">
+                    <a href="topic.php?id=<?= (int) $r['id'] ?>"><?= htmlspecialchars($r['title']) ?></a>
+                </h2>
+                <p class="small text-body-secondary mb-0">
+                    <?= htmlspecialchars(mb_substr(strip_tags($r['body']), 0, 160)) ?>
+                </p>
+            </div>
+        </div>
+    <?php endforeach; ?>
+</div>
+
+<?php render_footer(); ?>

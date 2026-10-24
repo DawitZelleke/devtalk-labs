@@ -1,0 +1,50 @@
+<?php
+require_once __DIR__ . '/../src/helpers.php';
+
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+    $username = request_string($_POST, 'username', 50);
+    $password = request_string($_POST, 'password', 1024);
+
+    try {
+        $stmt = db()->prepare('SELECT * FROM users WHERE username = ?');
+        $stmt->execute([$username]);
+        $row = $stmt->fetch();
+
+        if ($row && verify_user_password($password, $row)) {
+            login_user((int) $row['id']);
+            header('Location: index.php');
+            exit;
+        }
+        $error = 'Invalid username or password.';
+    } catch (PDOException $e) {
+        log_exception($e, 'login');
+        $error = 'Login is temporarily unavailable. Please try again later.';
+    }
+}
+
+render_header('Log in');
+?>
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h1 class="h4 mb-3">Log in</h1>
+        <?php if ($error): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        <form method="post" class="card card-body shadow-sm">
+            <?= csrf_field() ?>
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input name="username" class="form-control" autofocus>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input name="password" type="password" class="form-control">
+            </div>
+            <button class="btn btn-primary">Log in</button>
+            <p class="small mt-3 mb-0">No account? <a href="register.php">Register</a>.</p>
+        </form>
+    </div>
+</div>
+<?php render_footer(); ?>
