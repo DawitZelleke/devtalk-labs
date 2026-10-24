@@ -10,6 +10,26 @@ Screenshots of each blocked exploit are in `docs/screenshots/`.
 Each patch below maps to the correspondingly numbered finding in the Lab 4
 Vulnerability Log.
 
+## Summary
+
+| Patch | Lab 4 finding | OWASP 2025 | Files changed | Result |
+|---|---|---|---|---|
+| #1 | SQL injection (login, search) | A05 Injection | `login.php`, `search.php`, `helpers.php` | Prepared statements, bound params |
+| #2 | Reflected + stored XSS | A05 Injection | `search.php`, `topic.php`, `helpers.php` | Output encoding + HTML allowlist |
+| #3 | IDOR (edit/delete/profile) | A01 Broken Access Control | `edit_topic.php`, `delete_topic.php`, `delete_comment.php`, `profile.php`, `helpers.php` | Ownership checks → 403 |
+| #4 | CSRF + unsafe GET | A01 Broken Access Control | all POST forms/handlers, `logout.php`, `helpers.php` | Session tokens → 403; GET → 405 |
+| #5 | SSRF + local file read | A01 Broken Access Control | `fetch_image.php` | No server-side fetch; 400 |
+| #6 | Plaintext passwords | A04 Cryptographic Failures | `build_db.php`, `register.php`, `helpers.php`, `schema.sql`, `migrate_passwords.php` | `password_hash`/`password_verify` |
+| #7 | Session fixation, no HttpOnly | A07 Authentication Failures | `helpers.php`, `login.php`, `register.php` | ID regenerated; HttpOnly + SameSite |
+| #8 | DB exception disclosure | A10 Exceptional Conditions | `search.php`, `login.php`, `register.php`, `helpers.php` | Generic messages; details logged |
+| #9 | Public debug output, array params | A02 Security Misconfiguration | `config.php`, `errors.php`, input readers | display_errors off; 400 on bad shape |
+
+**Final regression (after Patch #9):** all 18 exploit checks from findings #1–#9
+fail as expected, and all 16 normal-use checks pass: login for every seeded
+account, search, post formatting, create/edit/delete topic, add/delete comment,
+update own bio, admin moderation, register, logout, and bundled image preview.
+**34/34 passed.**
+
 ---
 
 ## Patch #1 — Parameterize login and search (A05 Injection — SQLi)
