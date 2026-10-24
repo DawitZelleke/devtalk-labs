@@ -4,8 +4,10 @@ require_once __DIR__ . '/../src/helpers.php';
 $id = $_GET['id'] ?? ($_POST['user_id'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_logged_in()) {
+    // Authorization: a user may only update their OWN bio. The target row is
+    // the authenticated user's id, never a value submitted in the request.
     $bio    = $_POST['bio'] ?? '';
-    $userId = $_POST['user_id'] ?? '';
+    $userId = current_user_id();
     $upd = db()->prepare('UPDATE users SET bio = ? WHERE id = ?');
     $upd->execute([$bio, $userId]);
     header('Location: profile.php?id=' . (int) $userId);

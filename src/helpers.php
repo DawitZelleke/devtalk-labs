@@ -29,6 +29,28 @@ function require_login(): void
     }
 }
 
+function current_user_id(): ?int
+{
+    return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+}
+
+function current_user_is_admin(): bool
+{
+    $u = current_user();
+    return $u !== null && (int) ($u['is_admin'] ?? 0) === 1;
+}
+
+/** Send a 403 page and stop. Used when an authenticated user is not
+ *  authorized to act on the requested object. */
+function forbid(string $msg = 'You are not allowed to do that.'): void
+{
+    http_response_code(403);
+    render_header('Forbidden');
+    echo '<div class="alert alert-danger">' . htmlspecialchars($msg) . '</div>';
+    render_footer();
+    exit;
+}
+
 /**
  * Verify a submitted password against a stored user record.
  * Hashed records are checked with password_verify(); any legacy plaintext

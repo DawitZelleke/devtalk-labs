@@ -15,6 +15,11 @@ if (!$topic) {
     exit;
 }
 
+// Authorization: only the topic's owner may edit it.
+if ((int) $topic['user_id'] !== current_user_id()) {
+    forbid('You can only edit your own topics.');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $body  = $_POST['body'] ?? '';

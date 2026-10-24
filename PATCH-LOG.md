@@ -88,3 +88,37 @@ topic/comment executed when the page was viewed.
 **Normal use still works.** Post formatting survives sanitising — the probe's
 `<strong>bold</strong>` and the seeded welcome topic's `<strong>` text and
 `assets/img/welcome.png` image all still render.
+
+---
+
+## Patch #3 — Enforce object ownership before mutation (A01 Broken Access Control — IDOR)
+
+**Lab 4 finding:** #3 — missing object ownership authorization.
+
+**Root cause.** `edit_topic.php`, `delete_topic.php` and `delete_comment.php`
+checked only `require_login()` — any logged-in user could act on any object id.
+`profile.php` updated `users` using the **submitted** `user_id`, so a user could
+overwrite anyone's bio.
+
+**Exploit confirmed on current code.** Logged in as `alice`, requests against
+Bob's topic/comment and the admin's topic modified or deleted them, and a
+`profile.php` POST with `user_id=3` rewrote Bob's bio.
+
+**Fix.** Every mutation now authorizes the loaded record against the
+authenticated user, server-side, before changing anything:
+- `edit_topic.php` — owner-only; non-owners get `403`.
+- `delete_topic.php` / `delete_comment.php` — load the record first; allow the
+  owner, or an admin (moderation); otherwise `403`.
+- `profile.php` — the bio update targets `current_user_id()`; the request's
+  `user_id` is ignored, so a user can only edit their own bio.
+New helpers `current_user_id()`, `current_user_is_admin()` and `forbid()` back
+these checks.
+
+**Re-test (exploit fails).** As `alice`: `GET`/`POST edit_topic?id=3` → `403`,
+Bob's title unchanged; `profile.php` POST with `user_id=3` → Bob's bio
+unchanged, only Alice's own bio updated; `delete_comment?id=2` and
+`delete_topic?id=4` → `403`, both records still present.
+`docs/screenshots/03-idor-edit-forbidden.png`.
+
+**Normal use still works.** Alice edits her own topic (HTTP 302, title updated);
+the admin moderates/deletes another user's topic (HTTP 302, removed).
