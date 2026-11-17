@@ -1,11 +1,22 @@
-# DevTalk Forum
+# DevTalk Security Lab
 
-## Objective
-This small discussion forum, built with **PHP + SQLite + Bootstrap 5**, is the 
-target application for **Lab 4** and **Lab 5**. For Lab 4, you will to find and 
-document the security vulnerabilities in this application. For Lab 5, you will 
-patch the vulnerbilities and confirm your attacks no longer work.
+Security investigation and remediation of a supplied PHP and SQLite forum for CST8265 Labs 4 and 5. The original forum was provided for the course; my contribution is the vulnerability analysis, patches, and verification documented here.
 
+## Review the work
+
+- [Patch log](PATCH-LOG.md): nine finding categories with root causes, changed files, and before-and-after checks.
+- [Shared security helpers](src/helpers.php): CSRF validation, session handling, password verification, and output sanitization.
+- [Verification screenshots](docs/screenshots/): evidence referenced by the patch log.
+
+The patch log records 18 exploit checks and 16 normal-use checks. These are documented manual regression checks, not an automated suite or an independent security assessment.
+
+## Engineering decisions
+
+Parameterized queries keep input separate from SQL. Ownership checks protect changes to other users' records. CSRF tokens and POST-only handlers protect state-changing operations. Password hashing and session ID regeneration strengthen account handling. Server-side image fetching was removed to eliminate that SSRF entry point.
+
+## Scope
+
+This is an educational application for local evaluation. Its known demonstration credentials and vulnerable baseline are intentional lab materials. The documented checks do not establish that every possible vulnerability has been eliminated.
 
 ## Requirements
 
@@ -21,7 +32,14 @@ php -m | grep -i sqlite
 
 ## Setup
 
-From the `forum` directory:
+Clone the repository, then run commands from its root:
+
+```bash
+git clone https://github.com/DawitZelleke/devtalk-labs.git
+cd devtalk-labs
+```
+
+Use a disposable local database for this lab:
 
 ```bash
 # 1. Build and seed the database
@@ -73,7 +91,7 @@ forum/
 │   ├── add_comment.php / delete_comment.php
 │   ├── search.php         # topic search
 │   ├── profile.php        # user profile
-│   ├── fetch_image.php    # server-side image preview
+│   ├── fetch_image.php    # disabled server-side fetch endpoint
 │   └── assets/            # CSS and images
 ├── src/                   # config, DB connection, shared helpers
 └── database/              # schema + build/seed script (SQLite file is generated)
