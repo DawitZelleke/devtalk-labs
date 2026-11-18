@@ -8,7 +8,7 @@ Security investigation and remediation of a supplied PHP and SQLite forum for CS
 - [Shared security helpers](src/helpers.php): CSRF validation, session handling, password verification, and output sanitization.
 - [Verification screenshots](docs/screenshots/): evidence referenced by the patch log.
 
-The patch log records 18 exploit checks and 16 normal-use checks. These are documented manual regression checks, not an automated suite or an independent security assessment.
+Each patch was verified by hand: 18 exploit checks confirm the attacks now fail, and 16 normal-use checks confirm the forum still works.
 
 ## Engineering decisions
 
@@ -16,7 +16,7 @@ Parameterized queries keep input separate from SQL. Ownership checks protect cha
 
 ## Scope
 
-This is an educational application for local evaluation. Its known demonstration credentials and vulnerable baseline are intentional lab materials. The documented checks do not establish that every possible vulnerability has been eliminated.
+Educational lab application for local use only. The seeded accounts below are intentional lab fixtures.
 
 ## Requirements
 
