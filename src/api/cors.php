@@ -4,32 +4,50 @@
  *
  * Called once, at the top of public/api/index.php, before any route runs.
  *
- * Background: DevTalk's product team plans a separate JavaScript front end
- * that will be developed at http://localhost:5173 and needs to call this API
- * from that origin. While testing it, a developer kept hitting the browser
- * error "The value of the 'Access-Control-Allow-Origin' header must not be
- * the wildcard '*' when the request's credentials mode is 'include'", and
- * "fixed" it with the code below.
+ * Lab 8 Patch #A1. The previous version reflected ANY request Origin back in
+ * Access-Control-Allow-Origin together with Access-Control-Allow-Credentials:
+ * true, so every website a logged-in user visited could read their API data.
  *
- * LAB 8, PART A: this is the file you fix.
+ * DevTalk's own pages (including messages.php) are same-origin and need no
+ * CORS. The only other origin allowed to read API responses is the planned
+ * front end at http://localhost:5173.
  */
+
+/** Exact origins (scheme://host:port) allowed to read API responses. */
+const API_CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+];
+
+function api_cors_origin_allowed(string $origin): bool
+{
+    // Exact, strict comparison only. "null" (sandboxed iframes, file://,
+    // some redirects) is never on the list, so it is never allowed.
+    return $origin !== 'null' && in_array($origin, API_CORS_ALLOWED_ORIGINS, true);
+}
 
 function api_cors(): void
 {
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    // Responses differ by Origin, so caches must key on it.
+    header('Vary: Origin');
 
-    if ($origin !== '') {
-        // "Works for every front end we'll ever build!"
+    $origin  = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $allowed = is_string($origin) && api_cors_origin_allowed($origin);
+
+    if ($allowed) {
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Credentials: true');
     }
 
-    // Answer CORS preflight requests (sent by the browser before a PATCH,
-    // a JSON POST, or any request with an Authorization header).
+    // CORS preflight (sent by the browser before a PATCH, a JSON POST, or any
+    // request with an Authorization header). Only an allowed origin gets the
+    // Access-Control-* answers; any other origin gets none, so the browser
+    // blocks the real request.
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-        header('Access-Control-Max-Age: 600');
+        if ($allowed) {
+            header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization');
+            header('Access-Control-Max-Age: 600');
+        }
         http_response_code(204);
         exit;
     }
