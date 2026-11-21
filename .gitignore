@@ -227,3 +227,6 @@ public/uploads/*
 # Server-side error log (Lab 5 Patch #9)
 logs/*
 !logs/.gitkeep
+
+# Lab 8: JWT signing key and other runtime files
+storage/

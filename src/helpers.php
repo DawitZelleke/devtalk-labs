@@ -1,15 +1,33 @@
 <?php
 require_once __DIR__ . '/db.php';
 
+/* ---- Browser security headers (Lab 8) -------------------------------- */
+if (!headers_sent()) {
+    header("Content-Security-Policy-Report-Only: default-src 'self'; "
+        . "script-src 'self' https://cdn.jsdelivr.net; "
+        . "style-src 'self' https://cdn.jsdelivr.net; "
+        . "img-src 'self' data:; "
+        . "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains'); // only honoured over HTTPS
+    header_remove('X-Powered-By');
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    // The single place session cookie flags are set.
+    session_set_cookie_params([
+        'httponly' => true,     // not readable from JavaScript
+        'samesite' => 'Lax',    // not sent on cross-site POSTs
+        'secure'   => $https,   // HTTPS-only when served over TLS
+    ]);
     session_start([
         'use_strict_mode'  => 1,     // reject unknown, attacker-chosen session ids
         'use_only_cookies' => 1,     // never accept a session id from the URL
         'use_trans_sid'    => 0,
-        'cookie_httponly'  => 1,     // not readable from JavaScript
-        'cookie_samesite'  => 'Lax', // not sent on cross-site POSTs
-        'cookie_secure'    => $https ? 1 : 0, // HTTPS-only when served over TLS
     ]);
 }
 
