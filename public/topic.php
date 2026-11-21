@@ -54,7 +54,7 @@ render_header($topic['title']);
                 <a class="btn btn-sm btn-outline-secondary"
                     href="edit_topic.php?id=<?= (int) $topic['id'] ?>">Edit</a>
                 <form method="post" action="delete_topic.php" class="d-inline m-0"
-                    onsubmit="return confirm('Delete this topic?')">
+                    data-confirm="Delete this topic?">
                     <?= csrf_field() ?>
                     <input type="hidden" name="id" value="<?= (int) $topic['id'] ?>">
                     <button class="btn btn-sm btn-outline-danger">Delete</button>

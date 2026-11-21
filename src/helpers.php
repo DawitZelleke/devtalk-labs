@@ -3,7 +3,7 @@ require_once __DIR__ . '/db.php';
 
 /* ---- Browser security headers (Lab 8) -------------------------------- */
 if (!headers_sent()) {
-    header("Content-Security-Policy-Report-Only: default-src 'self'; "
+    header("Content-Security-Policy: default-src 'self'; "
         . "script-src 'self' https://cdn.jsdelivr.net; "
         . "style-src 'self' https://cdn.jsdelivr.net; "
         . "img-src 'self' data:; "
@@ -313,6 +313,7 @@ function render_header(string $title = APP_NAME): void
             <?= APP_NAME ?> — CST8265 lab application. For educational use only.
         </footer>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/app.js"></script>
     </body>
 
     </html>
