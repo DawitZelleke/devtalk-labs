@@ -4,6 +4,7 @@ Security investigation and remediation of a supplied PHP and SQLite forum for CS
 
 ## Review the work
 
+- [Lab 8 report](LAB8-REPORT.md): CSP enforcement, CORS allowlist fix (Patch #A1), and session cookie vs JWT analysis.
 - [Patch log](PATCH-LOG.md): nine finding categories with root causes, changed files, and before-and-after checks.
 - [Shared security helpers](src/helpers.php): CSRF validation, session handling, password verification, and output sanitization.
 - [Verification screenshots](docs/screenshots/): evidence referenced by the patch log.
